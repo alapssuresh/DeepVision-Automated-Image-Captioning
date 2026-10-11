@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import cohere
 
 # Initialize the Cohere API client
-co = cohere.Client('p5w84ulMRkqgd6VJqJIIr3sg5gmfNGhA207dseGQ')
+co = cohere.Client(os.environ["COHERE_API_KEY"])
 
 # Download necessary NLTK resources
 nltk.download('punkt')
