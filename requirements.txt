@@ -1,0 +1,7 @@
+transformers==4.30.0  # Ensure compatibility with VisionEncoderDecoderModel and pipelines
+Pillow==9.2.0         # For image processing
+torch==2.0.1          # PyTorch for running models
+nltk==3.8.1           # For natural language processing tasks
+networkx==3.1         # For building and visualizing the knowledge graph
+matplotlib==3.7.1     # For visualizing the knowledge graph
+cohere==2.9.0         # For generating stories using Cohere

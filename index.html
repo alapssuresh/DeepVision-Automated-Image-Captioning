@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Captioning Program</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #2b2d42;
+            --border-radius: 12px;
+            --spacing: 24px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: var(--spacing);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: var(--spacing);
+        }
+
+        h2 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: calc(var(--spacing) * 2);
+        }
+
+        .upload-section {
+            background: var(--card-background);
+            padding: calc(var(--spacing) * 2);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .image-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin: var(--spacing) 0;
+        }
+
+        .image-preview {
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .output-box {
+            background: var(--card-background);
+            padding: var(--spacing);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-top: var(--spacing);
+        }
+
+        .knowledge-graph img {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-top: 16px;
+        }
+
+        #reset-button {
+            background-color: #dc3545;
+        }
+
+        #reset-button:hover {
+            background-color: #bb2d3b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>AI Image Captioning</h2>
+        
+        <div class="upload-section">
+            <label for="image-input" class="file-input-label">Choose Images</label>
+            <input type="file" id="image-input" name="files[]" accept="image/*" multiple>
+            <div class="image-preview-container" id="image-preview-container"></div>
+        </div>
+
+        <div class="button-group">
+            <button class="button" id="generate-caption-button">Generate</button>
+            <button class="button" id="reset-button">Reset</button>
+        </div>
+
+        <div class="output-box">
+            <h3>Recognized Captions and Entities</h3>
+            <p id="captions-and-entities">No captions generated yet.</p>
+        </div>
+
+        <div class="output-box knowledge-graph">
+            <h3>Knowledge Graph</h3>
+            <img id="knowledge-graph" alt="Knowledge Graph Preview">
+        </div>
+
+        <div class="output-box">
+            <h3>Generated Story</h3>
+            <p id="generated-story">No story generated yet.</p>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const generateCaptionButton = document.getElementById('generate-caption-button');
+        const captionsAndEntitiesOutput = document.getElementById('captions-and-entities');
+        const knowledgeGraphOutput = document.getElementById('knowledge-graph');
+        const generatedStoryOutput = document.getElementById('generated-story');
+        const resetButton = document.getElementById('reset-button');
+
+        // Load saved images and data from localStorage if they exist
+        window.addEventListener('load', () => {
+            const savedImages = JSON.parse(localStorage.getItem('uploadedImages')) || [];
+            const savedCaptions = localStorage.getItem('captions') || '';
+            const savedStory = localStorage.getItem('story') || '';
+            const savedGraphUrl = localStorage.getItem('graph_url') || '';
+
+            // Display saved images
+            savedImages.forEach(src => {
+                const previewDiv = document.createElement('div');
+                previewDiv.classList.add('image-preview');
+                const img = document.createElement('img');
+                img.src = src;
+                previewDiv.appendChild(img);
+                imagePreviewContainer.appendChild(previewDiv);
+            });
+
+            // Display saved captions, story, and graph
+            if (savedCaptions) captionsAndEntitiesOutput.innerText = savedCaptions;
+            if (savedStory) generatedStoryOutput.innerText = savedStory;
+            if (savedGraphUrl) knowledgeGraphOutput.src = savedGraphUrl;
+        });
+
+        // Preview images locally
+        imageInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length === 0) return;
+            
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                const previewDiv = document.createElement('div');
+                previewDiv.classList.add('image-preview');
+                reader.onload = (event) => {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    previewDiv.appendChild(img);
+
+                    // Save the image preview to localStorage
+                    let uploadedImages = JSON.parse(localStorage.getItem('uploadedImages')) || [];
+                    uploadedImages.push(event.target.result);
+                    localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+
+                    imagePreviewContainer.appendChild(previewDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        // Submit files to Flask backend
+        generateCaptionButton.addEventListener('click', async () => {
+            const files = imageInput.files;
+            if (files.length === 0) {
+                captionsAndEntitiesOutput.innerText = 'Please select at least one image.';
+                return;
+            }
+
+            const formData = new FormData();
+            Array.from(files).forEach(file => formData.append('files[]', file));
+
+            try {
+                const response = await fetch('/process-images', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) throw new Error('Failed to process images');
+                const data = await response.json();
+
+                // Display captions
+                captionsAndEntitiesOutput.innerText = `Detected captions: ${data.captions}`;
+
+                // Display story
+                generatedStoryOutput.innerText = data.story;
+
+                // Display the knowledge graph image
+                knowledgeGraphOutput.src = data.graph_url || '';
+
+                // Store the result in localStorage
+                localStorage.setItem('captions', data.captions);
+                localStorage.setItem('story', data.story);
+                localStorage.setItem('graph_url', data.graph_url);
+            } catch (error) {
+                captionsAndEntitiesOutput.innerText = 'Error processing images. Try again.';
+            }
+        });
+
+        resetButton.addEventListener('click', () => {
+            imageInput.value = '';
+            imagePreviewContainer.innerHTML = '';
+            captionsAndEntitiesOutput.innerText = '';
+            knowledgeGraphOutput.src = '';
+            generatedStoryOutput.innerText = '';
+
+            // Clear localStorage when reset button is clicked
+            localStorage.removeItem('uploadedImages');
+            localStorage.removeItem('captions');
+            localStorage.removeItem('story');
+            localStorage.removeItem('graph_url');
+        });
+    </script>
+</body>
+</html>
